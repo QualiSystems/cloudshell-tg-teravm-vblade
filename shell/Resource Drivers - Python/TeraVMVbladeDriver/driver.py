@@ -50,7 +50,7 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
         :rtype: AutoLoadDetails
         """
         logger = get_logger_with_thread_id(context)
-        logger.info('Autoload')
+        logger.info("Autoload")
 
         with ErrorHandlingContext(logger):
             cs_api = get_api(context)
@@ -60,10 +60,12 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
             # get VM uuid of the Deployed App
             deployed_vm_resource = cs_api.GetResourceDetails(vblade_resource.fullname)
             vmuid = deployed_vm_resource.VmDetails.UID
+            logger.info("Deployed TVM Module App uuid: {}".format(vmuid))
 
             # get vCenter name
             app_request_data = json.loads(context.resource.app_context.app_request_json)
             vcenter_name = app_request_data["deploymentService"]["cloudProviderName"]
+            logger.info("vCenter shell resource name: {}".format(vcenter_name))
 
             vsphere = pyVmomiService(SmartConnect, Disconnect, task_waiter=None)
 
@@ -77,29 +79,38 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
 
             password = cs_api.DecryptPassword(encrypted_password).Value
 
+            logger.info("Connecting to the vCenter: {}".format(vcenter_name))
             si = vsphere.connect(address=vcenter_resource.Address, user=user, password=password)
 
             # find Deployed App VM on the vCenter
             vm = vsphere.get_vm_by_uuid(si, vmuid)
 
-            phys_interfaces = {}
+            phys_interfaces = []
+            comms_mac_addr = None
+
             for device in vm.config.hardware.device:
                 if isinstance(device, vim.vm.device.VirtualEthernetCard):
-                    if_name = device.deviceInfo.summary.lower()
-                    phys_interfaces[if_name] = device.macAddress
+                    if device.deviceInfo.summary.lower() == vblade_resource.tvm_comms_network.lower():
+                        comms_mac_addr = device.macAddress
+                    else:
+                        phys_interfaces.append(device.macAddress)
 
-            comms_mac_addr = phys_interfaces.pop(vblade_resource.tvm_comms_network.lower())
+            if comms_mac_addr is None:
+                raise Exception("Unable to find TVM Comms network with name '{}' on the device"
+                                .format(vblade_resource.tvm_comms_network))
 
+            logger.info("Found interfaces on the device: {}".format(phys_interfaces))
             module_res = models.Module(shell_name="",
                                        name="Module {}".format(comms_mac_addr.replace(":", "-")),
                                        unique_id=hash(comms_mac_addr))
 
+            logger.info("Updating resource address for the module to {}".format(comms_mac_addr))
             cs_api.UpdateResourceAddress(context.resource.fullname, comms_mac_addr)
 
-            for if_name, mac_address in phys_interfaces.iteritems():
+            for mac_address in phys_interfaces:
                 unique_id = hash(mac_address)
                 port_res = models.Port(shell_name="",
-                                       name=if_name,
+                                       name="Port {}".format(mac_address.replace(":", "-")),
                                        unique_id=unique_id)
 
                 port_res.mac_address = mac_address
@@ -133,7 +144,7 @@ if __name__ == "__main__":
     context.resource.name = 'tvm_m_2_fec7-7c42'
     context.resource.fullname = 'tvm_m_2_fec7-7c42'
     context.reservation = ReservationContextDetails()
-    context.reservation.reservation_id = 'fc72963b-d0cb-4295-bc0f-3a210d52287c'
+    context.reservation.reservation_id = '0cc17f8c-75ba-495f-aeb5-df5f0f9a0e97'
     context.resource.attributes = {}
     context.resource.attributes['User'] = user
     context.resource.attributes['Password'] = password
