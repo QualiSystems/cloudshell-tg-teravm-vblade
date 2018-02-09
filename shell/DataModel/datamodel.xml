@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<DataModelInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns="http://schemas.qualisystems.com/ResourceManagement/DataModelSchema.xsd">
+    <Attributes>
+        <AttributeInfo Name="Logical Name" Type="String" DefaultValue="" IsReadOnly="false"
+                       Description="The port's logical name in the test configuration. If kept emtpy automatic allocation will apply.">
+            <Rules Override="false">
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo Name="MAC Address" Type="String" DefaultValue="" IsReadOnly="true">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Available For Abstract Resources"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo DefaultValue=""
+                       Description="The name of the TVM Comms network on the vCenter"
+                       IsReadOnly="false" Name="TVM Comms Network" Type="String">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+        <AttributeInfo DefaultValue=""
+                       Description="The name of the TVM MGMT network on the vCenter"
+                       IsReadOnly="false" Name="TVM MGMT Network" Type="String">
+            <Rules>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
+    </Attributes>
+    <ResourceFamilies>
+        <ResourceFamily Name="Module" IsConnectable="false" IsLockedByDefault="true"
+                        Description="" IsSearchable="true" ResourceType="Application">
+            <Models>
+                <ResourceModel Name="Generic Traffic Generator Module" Description=""
+                               SupportsConcurrentCommands="false">
+                    <AttachedAttributes>
+                        <AttachedAttribute Name="TVM Comms Network" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="TVM MGMT Network" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                    </AttachedAttributes>
+                    <AttributeValues>
+                        <AttributeValue Name="TVM Comms Network" Value=""/>
+                        <AttributeValue Name="TVM MGMT Network" Value=""/>
+                    </AttributeValues>
+                    <ParentModels/>
+                    <Drivers>
+                        <DriverName>TeraVMVbladeDriver</DriverName>
+                    </Drivers>
+                </ResourceModel>
+            </Models>
+        </ResourceFamily>
+        <ResourceFamily Name="Port" IsSearchable="true" IsConnectable="true" IsLockedByDefault="true">
+            <AttachedAttributes/>
+            <AttributeValues/>
+            <Models>
+                <ResourceModel Name="Generic Traffic Generator Port" Description="" SupportsConcurrentCommands="false">
+                    <AttachedAttributes>
+                        <AttachedAttribute Name="Logical Name" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                        <AttachedAttribute Name="MAC Address" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
+                    </AttachedAttributes>
+                    <AttributeValues>
+                        <AttributeValue Name="Logical Name" Value=""/>
+                        <AttributeValue Name="MAC Address" Value=""/>
+                    </AttributeValues>
+                    <ParentModels>
+                        <ParentModelName>Generic Traffic Generator Module</ParentModelName>
+                    </ParentModels>
+                    <Drivers/>
+                    <Scripts/>
+                </ResourceModel>
+            </Models>
+            <Categories/>
+        </ResourceFamily>
+    </ResourceFamilies>
+    <DriverDescriptors>
+        <DriverDescriptor Name="TeraVMVbladeDriver" DriverType="PythonDriver"/>
+    </DriverDescriptors>
+</DataModelInfo>
