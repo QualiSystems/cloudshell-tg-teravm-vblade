@@ -9,9 +9,8 @@ from cloudshell.cp.vcenter.common.vcenter.vmomi_service import pyVmomiService
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
 
-# TODO: resolve packages
-from traffic.teravm.vblade.configuration_attributes_structure import TrafficGeneratorVBladeResource
-from traffic.teravm.chassis.autoload import models
+from cloudshell.traffic.teravm.vblade.configuration_attributes_structure import TrafficGeneratorVBladeResource
+from cloudshell.traffic.teravm.vblade.autoload import models
 
 
 VCENTER_RESOURCE_USER_ATTR = "User"
