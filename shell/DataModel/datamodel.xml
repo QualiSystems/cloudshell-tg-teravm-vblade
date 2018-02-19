@@ -33,7 +33,7 @@
         <ResourceFamily Name="Module" IsConnectable="false" IsLockedByDefault="true"
                         Description="" IsSearchable="true" ResourceType="Application">
             <Models>
-                <ResourceModel Name="Generic Traffic Generator Module" Description=""
+                <ResourceModel Name="TeraVM Virtual Traffic Generator Module" Description=""
                                SupportsConcurrentCommands="false">
                     <AttachedAttributes>
                         <AttachedAttribute Name="TVM Comms Network" IsOverridable="true" IsLocal="true">
@@ -58,7 +58,7 @@
             <AttachedAttributes/>
             <AttributeValues/>
             <Models>
-                <ResourceModel Name="Generic Traffic Generator Port" Description="" SupportsConcurrentCommands="false">
+                <ResourceModel Name="TeraVM Virtual Traffic Generator Port" Description="" SupportsConcurrentCommands="false">
                     <AttachedAttributes>
                         <AttachedAttribute Name="Logical Name" IsOverridable="true" IsLocal="true">
                             <AllowedValues/>
@@ -72,7 +72,7 @@
                         <AttributeValue Name="MAC Address" Value=""/>
                     </AttributeValues>
                     <ParentModels>
-                        <ParentModelName>Generic Traffic Generator Module</ParentModelName>
+                        <ParentModelName>TeraVM Virtual Traffic Generator Module</ParentModelName>
                     </ParentModels>
                     <Drivers/>
                     <Scripts/>

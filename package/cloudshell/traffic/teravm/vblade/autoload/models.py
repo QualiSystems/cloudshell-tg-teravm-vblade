@@ -7,7 +7,7 @@ class Chassis(AbstractResource):
 
 
 class Module(AbstractResource):
-    RESOURCE_MODEL = "Generic Traffic Generator Module"
+    RESOURCE_MODEL = "TeraVM Virtual Traffic Generator Module"
     RELATIVE_PATH_TEMPLATE = "M"
 
     @property
@@ -29,7 +29,7 @@ class Module(AbstractResource):
 
 
 class Port(AbstractResource):
-    RESOURCE_MODEL = "Generic Traffic Generator Port"
+    RESOURCE_MODEL = "TeraVM Virtual Traffic Generator Port"
     RELATIVE_PATH_TEMPLATE = "P"
 
     @property
