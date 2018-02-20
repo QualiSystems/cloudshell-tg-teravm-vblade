@@ -28,6 +28,12 @@
                 <Rule Name="Configuration"/>
             </Rules>
         </AttributeInfo>
+        <AttributeInfo Name="Requested vNIC Name" Type="String" DefaultValue="" IsReadOnly="false">
+            <Rules Override="false">
+                <Rule Name="Setting"/>
+                <Rule Name="Configuration"/>
+            </Rules>
+        </AttributeInfo>
     </Attributes>
     <ResourceFamilies>
         <ResourceFamily Name="Module" IsConnectable="false" IsLockedByDefault="true"
@@ -66,9 +72,13 @@
                         <AttachedAttribute Name="MAC Address" IsOverridable="true" IsLocal="true">
                             <AllowedValues/>
                         </AttachedAttribute>
+                        <AttachedAttribute Name="Requested vNIC Name" IsOverridable="true" IsLocal="true">
+                            <AllowedValues/>
+                        </AttachedAttribute>
                     </AttachedAttributes>
                     <AttributeValues>
                         <AttributeValue Name="Logical Name" Value=""/>
+                        <AttributeValue Name="Requested vNIC Name" Value=""/>
                         <AttributeValue Name="MAC Address" Value=""/>
                     </AttributeValues>
                     <ParentModels>
