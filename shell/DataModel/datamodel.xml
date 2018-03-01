@@ -5,6 +5,7 @@
         <AttributeInfo Name="Logical Name" Type="String" DefaultValue="" IsReadOnly="false"
                        Description="The port's logical name in the test configuration. If kept emtpy automatic allocation will apply.">
             <Rules Override="false">
+                <Rule Name="Setting"/>
                 <Rule Name="Configuration"/>
             </Rules>
         </AttributeInfo>
