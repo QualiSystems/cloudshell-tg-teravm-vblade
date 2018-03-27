@@ -157,6 +157,7 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
             to_connect = []
             temp_connectors = []
             ports = self._get_ports(resource)
+            logger.info("Found ports: {}".format(ports))
 
             for connector in connectors:
                 me, other = self._set_remap_connector_details(connector, resource_name, temp_connectors)
@@ -172,6 +173,8 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
 
             for connector in connectors_with_predefined_target:
                 if connector.vnic_id not in ports.keys():
+                    logger.info("Unable to find port with vNIC number '{}'. Available ports vNICs: {}"
+                                .format(connector.vnic_id, ports))
                     raise Exception("Tried to connect an interface that is not on reservation - " + connector.vnic_id)
 
                 else:
