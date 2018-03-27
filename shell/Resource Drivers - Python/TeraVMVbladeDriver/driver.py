@@ -15,7 +15,7 @@ from cloudshell.traffic.teravm.vblade.configuration_attributes_structure import 
 from cloudshell.traffic.teravm.vblade.autoload import models
 
 
-
+ATTR_REQUESTED_VNIC_NAME = "Requested vNIC Name"
 ATTR_REQUESTED_SOURCE_VNIC = "Requested Source vNIC Name"
 ATTR_REQUESTED_TARGET_VNIC = "Requested Target vNIC Name"
 MODEL_PORT = "TeraVM Virtual Traffic Generator Port"
@@ -246,9 +246,15 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
 
     @staticmethod
     def _get_ports(resource):
-        ports = {str(idx): port for idx, port in enumerate(resource.ChildResources)
-                 if port.ResourceModelName == MODEL_PORT}
+        ports = {}
+        for port in resource.ChildResources:
+            if port.ResourceModelName == MODEL_PORT:
+                vnic_name = TeraVMVbladeDriver._get_resource_attribute_value(resource=port,
+                                                                             attribute_name=ATTR_REQUESTED_VNIC_NAME)
+                ports[vnic_name] = port
+
         return ports
+
 
 if __name__ == "__main__":
     import mock
