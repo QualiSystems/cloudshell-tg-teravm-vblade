@@ -98,7 +98,7 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
                     if device.deviceInfo.summary.lower() == vblade_resource.tvm_comms_network.lower():
                         comms_mac_addr = device.macAddress
                     else:
-                        phys_interfaces.append(device.macAddress)
+                        phys_interfaces.append(device)
 
             if comms_mac_addr is None:
                 raise Exception("Unable to find TVM Comms network with name '{}' on the device"
@@ -112,13 +112,15 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
             logger.info("Updating resource address for the module to {}".format(comms_mac_addr))
             cs_api.UpdateResourceAddress(context.resource.fullname, comms_mac_addr)
 
-            for mac_address in phys_interfaces:
-                unique_id = hash(mac_address)
+            for port_number, phys_interface in enumerate(phys_interfaces, start=1):
+                network_adapter_number = phys_interface.deviceInfo.label.lower().strip("network adapter ")
+                unique_id = hash(phys_interface.macAddress)
                 port_res = models.Port(shell_name="",
-                                       name="Port {}".format(mac_address.replace(":", "-")),
+                                       name="Port {}".format(port_number),
                                        unique_id=unique_id)
 
-                port_res.mac_address = mac_address
+                port_res.mac_address = phys_interface.macAddress
+                port_res.requested_vnic_name = network_adapter_number
                 module_res.add_sub_resource(unique_id, port_res)
 
             return AutoloadDetailsBuilder(module_res).autoload_details()
@@ -263,8 +265,8 @@ if __name__ == "__main__":
 
     context = ResourceCommandContext()
     context.resource = ResourceContextDetails()
-    context.resource.name = 'tvm_m_2_fec7-7c42'
-    context.resource.fullname = 'tvm_m_2_fec7-7c42'
+    context.resource.name = 'dd_5915-07f0'
+    context.resource.fullname = 'dd_5915-07f0'
     context.reservation = ReservationContextDetails()
     context.reservation.reservation_id = '0cc17f8c-75ba-495f-aeb5-df5f0f9a0e97'
     context.resource.attributes = {}
@@ -276,12 +278,12 @@ if __name__ == "__main__":
     context.resource.app_context = mock.MagicMock(app_request_json=json.dumps(
         {
             "deploymentService": {
-                "cloudProviderName": "vcenter_333"
+                "cloudProviderName": "vCenter"
             }
         }))
 
     context.connectivity = mock.MagicMock()
-    context.connectivity.server_address = "192.168.85.12"
+    context.connectivity.server_address = "192.168.85.20"
 
     dr = TeraVMVbladeDriver()
     dr.initialize(context)

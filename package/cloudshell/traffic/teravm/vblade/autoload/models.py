@@ -34,7 +34,7 @@ class Port(AbstractResource):
 
     @property
     def logical_name(self):
-        return self.get('Logical Name', None)
+        return self.attributes.get('Logical Name', None)
 
     @logical_name.setter
     def logical_name(self, value):
@@ -47,7 +47,7 @@ class Port(AbstractResource):
 
     @property
     def mac_address(self):
-        return self.get('MAC Address', None)
+        return self.attributes.get('MAC Address', None)
 
     @mac_address.setter
     def mac_address(self, value):
@@ -57,3 +57,16 @@ class Port(AbstractResource):
         :return:
         """
         self.attributes["MAC Address"] = value
+
+    @property
+    def requested_vnic_name(self):
+        return self.attributes.get('Requested vNIC Name', None)
+
+    @requested_vnic_name.setter
+    def requested_vnic_name(self, value):
+        """
+
+        :param value:
+        :return:
+        """
+        self.attributes["Requested vNIC Name"] = value
