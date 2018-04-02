@@ -1,7 +1,7 @@
-import copy
 import json
+import itertools
 
-from cloudshell.api.cloudshell_api import SetConnectorRequest
+from cloudshell.api.cloudshell_api import SetConnectorRequest, AttributeNameValue
 from cloudshell.core.context.error_handling_context import ErrorHandlingContext
 from cloudshell.devices.driver_helper import get_api
 from cloudshell.devices.autoload.autoload_builder import AutoloadDetailsBuilder
@@ -21,6 +21,49 @@ ATTR_REQUESTED_TARGET_VNIC = "Requested Target vNIC Name"
 MODEL_PORT = "TeraVM Virtual Traffic Generator Port"
 VCENTER_RESOURCE_USER_ATTR = "User"
 VCENTER_RESOURCE_PASSWORD_ATTR = "Password"
+
+
+class ConnectorData(object):
+    def __init__(self, direction, free_ports, source=None, target=None, source_vnic=None, target_vnic=None):
+        """
+
+        :param str direction: connector direction
+        :param dict[str, Port] free_ports: free resource ports
+        :param str source: source port name
+        :param str target: target port name
+        :param str source_vnic: source vNIC adapter number
+        :param str target_vnic: target vNIC adapter number
+        """
+        self.direction = direction
+        self.source_vnic = source_vnic
+        self.target_vnic = target_vnic
+        self._source = source
+        self._target = target
+        self._free_ports = free_ports
+
+    def _get_free_port(self):
+        """Get the last port from the free ports dictionary
+
+        :return:
+        """
+        try:
+            vnic_id = self._free_ports.keys()[-1]
+        except IndexError:
+            raise Exception("No free ports left on the resource")
+
+        return self._free_ports.pop(vnic_id)
+
+    @property
+    def source(self):
+        if not self._source:
+            self._source = self._get_free_port().Name
+        return self._source
+
+    @property
+    def target(self):
+        if not self._target:
+            self._target = self._get_free_port().Name
+        return self._target
 
 
 class TeraVMVbladeDriver(ResourceDriverInterface):
@@ -132,6 +175,37 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
 
         pass
 
+    def _create_connector_data(self, is_source, source_vnic, target_vnic, ports, connector):
+        """
+
+        :param is_source:
+        :param source_vnic:
+        :param target_vnic:
+        :param ports:
+        :param connector:
+        :rtype: ConnectorData
+        """
+        source = None
+        target = None
+
+        if is_source:
+            target = connector.target
+            if source_vnic:
+                port = ports.pop(source_vnic)
+                source = port.Name
+        else:
+            source = connector.source
+            if target_vnic:
+                port = ports.pop(target_vnic)
+                target = port.Name
+
+        return ConnectorData(direction=connector.direction,
+                             free_ports=ports,
+                             source=source,
+                             target=target,
+                             source_vnic=source_vnic,
+                             target_vnic=target_vnic)
+
     def connect_child_resources(self, context):
         """
 
@@ -142,8 +216,6 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
         logger.info("Connect child resources command started")
 
         with ErrorHandlingContext(logger):
-            api = get_api(context)
-
             resource_name = context.resource.fullname
             reservation_id = context.reservation.reservation_id
             connectors = context.connectors
@@ -151,101 +223,70 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
             if not context.connectors:
                 return "Success"
 
+            api = get_api(context)
             resource = api.GetResourceDetails(resource_name)
 
+            new_connectors_data = []
             to_disconnect = []
-            to_connect = []
-            temp_connectors = []
+
             ports = self._get_ports(resource)
-            logger.info("Found ports: {}".format(ports))
+            logger.info("Found ports on the resource {}".format(ports))
 
             for connector in connectors:
-                me, other = self._set_remap_connector_details(connector, resource_name, temp_connectors)
-                to_disconnect.extend([me, other])
+                source_remap_vnics = connector.attributes.get(ATTR_REQUESTED_SOURCE_VNIC, "").split(",")
+                target_remap_vnics = connector.attributes.get(ATTR_REQUESTED_TARGET_VNIC, "").split(",")
 
-            connectors = temp_connectors
+                source = connector.source
+                target = connector.target
 
-            # these are connectors from app to vlan where user marked to which interface the connector should be connected
-            connectors_with_predefined_target = [connector for connector in connectors if connector.vnic_id != ""]
+                # remove old connector
+                to_disconnect.extend([source, target])
 
-            # these are connectors from app to vlan where user left the target interface unspecified
-            connectors_without_target = [connector for connector in connectors if connector.vnic_id == ""]
-
-            for connector in connectors_with_predefined_target:
-                if connector.vnic_id not in ports.keys():
-                    logger.info("Unable to find port with vNIC number '{}'. Available ports vNICs: {}"
-                                .format(connector.vnic_id, ports))
-                    raise Exception("Tried to connect an interface that is not on reservation - " + connector.vnic_id)
-
+                if resource_name in connector.source.split("/"):
+                    is_source = True
                 else:
-                    if hasattr(ports[connector.vnic_id], "allocated"):
-                        raise Exception(
-                            "Tried to connect several connections to same interface: " + ports[connector.vnic_id])
+                    is_source = False
 
-                    else:
-                        to_connect.append(SetConnectorRequest(SourceResourceFullName=ports[connector.vnic_id].Name,
-                                                              TargetResourceFullName=connector.other,
-                                                              Direction=connector.direction,
-                                                              Alias=connector.alias))
-                        ports[connector.vnic_id].allocated = True
-
-            unallocated_ports = [port for key, port in ports.items() if not hasattr(port, "allocated")]
-
-            if len(unallocated_ports) < len(connectors_without_target):
-                raise Exception("There were more connections to TeraVM than available interfaces after deployment.")
-            else:
-                for port in unallocated_ports:
-                    if connectors_without_target:
-                        connector = connectors_without_target.pop()
-                        to_connect.append(SetConnectorRequest(SourceResourceFullName=port.Name,
-                                                              TargetResourceFullName=connector.other,
-                                                              Direction=connector.direction,
-                                                              Alias=connector.alias))
-
-            if connectors_without_target:
-                raise Exception("There were more connections to TeraVM than available interfaces after deployment.")
+                for source_vnic, target_vnic in itertools.izip_longest(source_remap_vnics, target_remap_vnics):
+                    new_connector_data = self._create_connector_data(is_source=is_source,
+                                                                     source_vnic=source_vnic,
+                                                                     target_vnic=target_vnic,
+                                                                     ports=ports,
+                                                                     connector=connector)
+                    new_connectors_data.append(new_connector_data)
 
             api.RemoveConnectorsFromReservation(reservation_id, to_disconnect)
-            api.SetConnectorsInReservation(reservation_id, to_connect)
+
+            new_connectors = []
+            for connector_data in new_connectors_data:
+                conn = SetConnectorRequest(SourceResourceFullName=connector_data.source,
+                                           TargetResourceFullName=connector_data.target,
+                                           Direction=connector_data.direction,
+                                           Alias=None)
+                new_connectors.append(conn)
+
+            api.SetConnectorsInReservation(reservation_id, new_connectors)
+
+            for connector_data in new_connectors_data:
+                connector_attrs = []
+
+                if connector_data.source_vnic:
+                    connector_attr = AttributeNameValue(Name=ATTR_REQUESTED_SOURCE_VNIC,
+                                                        Value=connector_data.source_vnic)
+                    connector_attrs.append(connector_attr)
+
+                if connector_data.target_vnic:
+                    connector_attr = AttributeNameValue(Name=ATTR_REQUESTED_TARGET_VNIC,
+                                                        Value=connector_data.target_vnic)
+                    connector_attrs.append(connector_attr)
+
+                if connector_attrs:
+                    api.SetConnectorAttributes(reservationId=reservation_id,
+                                               sourceResourceFullName=connector_data.source,
+                                               targetResourceFullName=connector_data.target,
+                                               attributeRequests=connector_attrs)
 
             return "Success"
-
-    @staticmethod
-    def _set_remap_connector_details(connector, resource_name, connectors):
-        attribs = connector.attributes
-        if resource_name in connector.source.split("/"):
-            remap_requests = attribs.get(ATTR_REQUESTED_SOURCE_VNIC, "").split(",")
-
-            me = connector.source
-            other = connector.target
-
-            for vnic_id in remap_requests:
-                new_con = copy.deepcopy(connector)
-                TeraVMVbladeDriver._update_connector(new_con, me, other, vnic_id)
-                connectors.append(new_con)
-
-        elif resource_name in connector.target.split("/"):
-            remap_requests = attribs.get(ATTR_REQUESTED_TARGET_VNIC, "").split(",")
-
-            me = connector.target
-            other = connector.source
-
-            for vnic_id in remap_requests:
-                new_con = copy.deepcopy(connector)
-                TeraVMVbladeDriver._update_connector(new_con, me, other, vnic_id)
-                connectors.append(new_con)
-        else:
-            raise Exception("Oops, a connector doesn't have required details:\n Connector source: {0}\n"
-                            "Connector target: {1}\nPlease contact your admin".format(connector.source,
-                                                                                      connector.target))
-
-        return me, other
-
-    @staticmethod
-    def _update_connector(connector, me, other, vnic_id):
-        connector.vnic_id = vnic_id
-        connector.me = me
-        connector.other = other
 
     @staticmethod
     def _get_ports(resource):
