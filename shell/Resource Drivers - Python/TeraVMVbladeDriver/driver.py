@@ -11,7 +11,7 @@ from cloudshell.cp.vcenter.common.vcenter.vmomi_service import pyVmomiService
 from pyVim.connect import SmartConnect, Disconnect
 from pyVmomi import vim
 
-from cloudshell.traffic.teravm.vblade.configuration_attributes_structure import TrafficGeneratorVBladeResource
+from cloudshell.traffic.teravm.vblade.configuration_attributes_structure import TeraVMTrafficGeneratorVBladeResource
 from cloudshell.traffic.teravm.vblade.autoload import models
 
 
@@ -103,7 +103,7 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
         with ErrorHandlingContext(logger):
             cs_api = get_api(context)
 
-            vblade_resource = TrafficGeneratorVBladeResource.from_context(context)
+            vblade_resource = TeraVMTrafficGeneratorVBladeResource.from_context(context)
 
             # get VM uuid of the Deployed App
             deployed_vm_resource = cs_api.GetResourceDetails(vblade_resource.fullname)
@@ -148,9 +148,9 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
                                 .format(vblade_resource.tvm_comms_network))
 
             logger.info("Found interfaces on the device: {}".format(phys_interfaces))
-            module_res = models.Module(shell_name="",
-                                       name="Module {}".format(comms_mac_addr.replace(":", "-")),
-                                       unique_id=hash(comms_mac_addr))
+            module_res = models.TeraVMModule(shell_name="",
+                                             name="Module {}".format(comms_mac_addr.replace(":", "-")),
+                                             unique_id=hash(comms_mac_addr))
 
             logger.info("Updating resource address for the module to {}".format(comms_mac_addr))
             cs_api.UpdateResourceAddress(context.resource.fullname, comms_mac_addr)
@@ -158,9 +158,9 @@ class TeraVMVbladeDriver(ResourceDriverInterface):
             for port_number, phys_interface in enumerate(phys_interfaces, start=1):
                 network_adapter_number = phys_interface.deviceInfo.label.lower().strip("network adapter ")
                 unique_id = hash(phys_interface.macAddress)
-                port_res = models.Port(shell_name="",
-                                       name="Port {}".format(port_number),
-                                       unique_id=unique_id)
+                port_res = models.TeraVMPort(shell_name="",
+                                             name="Port {}".format(port_number),
+                                             unique_id=unique_id)
 
                 port_res.mac_address = phys_interface.macAddress
                 port_res.requested_vnic_name = network_adapter_number
