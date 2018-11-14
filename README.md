@@ -77,8 +77,10 @@ The attributes of the vChassis are listed in the following table:
 |Executive Server|String|IP address or hostname of the Executive Server|
 |TVM Comms Network|String|TeraVM Comms Network name in vCenter|
 |TVM MGMT Network|String|TeraVM Management Network name in vCenter|
-|Password|Password|Password for the Deployed TeraVM Controller|
-|User|String|Username for the Deployed TeraVM Controller|
+|Password|Password|CLI password for the Deployed TeraVM Controller|
+|User|String|CLI username for the Deployed TeraVM Controller|
+|API Password|Password|API password for the Deployed TeraVM Controller|
+|API User|String|API username for the Deployed TeraVM Controller|
 
 #### **TeraVM Module Attributes (vBlade)**
 
